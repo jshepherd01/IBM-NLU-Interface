@@ -54,11 +54,11 @@ def main():
     
     elif args.file:
         with open(args.file) as f:
-            r_text_inp = [l for l in f.read().split('\n') if len(l.strip()) > 0]
+            r_text_inp = [l for l in f.read().split('\n') if len(l.strip()) > 0 and l[0] != '#']
 
         if args.targets_file:
             with open(args.targets_file) as f:
-                r_targ_inp = [[t.strip() for t in ts.split(',') if len(t.strip()) > 0] for ts in f.read().split('\n') if len(ts.strip()) > 0]
+                r_targ_inp = [[t.strip() for t in ts.split(',') if len(t.strip()) > 0] for ts in f.read().split('\n') if len(ts.strip()) > 0 and ts[0] != '#']
         
             if len(r_text_inp) != len(r_targ_inp):
                 print("The target file and the input file must have the same number of lines.")
