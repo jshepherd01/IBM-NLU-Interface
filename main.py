@@ -13,10 +13,24 @@ EMOTIONS = ["joy", "sadness", "anger", "fear", "disgust"]
 
 
 def init_model(api_key=None, api_url=None):
+    """Initialises a connection to an IBM Cloud Natural Language Understanding resource.
+
+    :param api_key: API key to use for the connection or None in which case the key is collected from the environment variable IBM_NLU_API_KEY, defaults to None
+    :type api_key: str, optional
+
+    :param api_url: URL of the API endpoint or None in which case it is collected from the environment variable IBM_NLU_API_URL, defaults to None
+    :type api_url: str, optional
+
+    :return: An initialised connection object
+    :rtype: class:`ibm_watson.NaturalLanguageUnderstandingV1`
+    """
+    # reading environment variables
     if api_key is None:
         api_key = os.getenv("IBM_NLU_API_KEY")
     if api_url is None:
         api_url = os.getenv("IBM_NLU_API_URL")
+    
+    # creating the connection
     auth = IAMAuthenticator(api_key)
     model = NaturalLanguageUnderstandingV1(version="2022-04-07", authenticator=auth)
     model.set_service_url(api_url)
@@ -25,6 +39,8 @@ def init_model(api_key=None, api_url=None):
 
 
 def main():
+    """Main function; parses command-line arguments, reads in input text, and calls the API to analyse it."""
+    # argument parsing
     parser = argparse.ArgumentParser(
         description="Interface with IBM Watson Natural Language Understanding."
     )
@@ -72,6 +88,7 @@ def main():
         )
         raise SystemExit()
 
+    # reading the input text and targets
     text_inp = []
     targ_inp = []
 
@@ -106,18 +123,22 @@ def main():
                     text_inp.append(r_text_inp[i])
                     targ_inp.append(r_targ_inp[i])
 
+    # intialising the model (API connection)
     model = init_model()
 
+    # initialising the result list
     results = {}
     results["date"] = datetime.now()
     results["batch"] = []
 
+    # performing analysis
     if not args.quiet:
         print()
     for text, targets in zip(text_inp, targ_inp):
         res = analyse(text, targets, model, args.verbose, args.quiet)
         results["batch"].append(res)
 
+    # saving results
     if not args.no_save:
         if not args.quiet:
             print("Saving...")
@@ -131,16 +152,30 @@ def main():
 
 
 def analyse(text, targets, model, verbose=False, quiet=False):
+    """Analyses the emotions in a given string as they relate to a list of targets using the Watson NLU API
+    
+    :param text: The text to analyse
+    :type text: str
+    :param targets: List of targets to analyse, there must be at least one target which is in the text
+    :type targets: list
+    :param model: The initialised :class:`ibm_watson.NaturalLanguageUnderstandingV1`, as the one returned by `init_model`
+    :type model: class:`ibm_watson.NaturalLanguageUnderstandingV1`
+    :param verbose: Whether to print usage and language statistics, defaults to False
+    :type verbose: bool, optional
+    :param quiet: Whether to silence printing of results, defaults to False
+    :type quiet: bool, optional
+    :return: The result of the analysis, containing keys `"usage"`, `"language"`, `"emotion"`, and `"text"`
+    :rtype: dict
+    """
     if not quiet:
         print(f"Analysing: {text}")
         print()
 
+    # performing analysis
     opts = nlu1.EmotionOptions(targets=targets)
     res = model.analyze(text=text, features=nlu1.Features(emotion=opts)).get_result()
 
-    col_0_width = max(len(t) for t in targets + ["document"])
-
-    if verbose:
+    if verbose: # printing extra information
         print(
             f"Usage: {res['usage']['text_units']} units; {res['usage']['text_characters']} characters."
         )
@@ -148,7 +183,9 @@ def analyse(text, targets, model, verbose=False, quiet=False):
         print(f"Language: {res['language']}")
         print()
 
-    if not quiet:
+    if not quiet: # printing emotion results
+        col_0_width = max(len(t) for t in targets + ["document"])
+
         print("Results")
         print()
         print(" | ".join(["item".ljust(col_0_width)] + [e.ljust(7) for e in EMOTIONS]))
