@@ -29,7 +29,7 @@ def init_model(api_key=None, api_url=None):
         api_key = os.getenv("IBM_NLU_API_KEY")
     if api_url is None:
         api_url = os.getenv("IBM_NLU_API_URL")
-    
+
     # creating the connection
     auth = IAMAuthenticator(api_key)
     model = NaturalLanguageUnderstandingV1(version="2022-04-07", authenticator=auth)
@@ -60,6 +60,13 @@ def main():
         "-s",
         "--targets-file",
         help="The targets file to read. Expects comma-separated targets, aligned line-wise with the inputs in the -f file.",
+    )
+    parser.add_argument(
+        "-l",
+        "--language",
+        default="en",
+        choices=["en", "fr"],
+        help="Language of the input string(s).",
     )
     parser.add_argument(
         "-n",
@@ -135,7 +142,7 @@ def main():
     if not args.quiet:
         print()
     for text, targets in zip(text_inp, targ_inp):
-        res = analyse(text, targets, model, args.verbose, args.quiet)
+        res = analyse(text, targets, model, args.language, args.verbose, args.quiet)
         results["batch"].append(res)
 
     # saving results
@@ -151,9 +158,9 @@ def main():
             print("Done.")
 
 
-def analyse(text, targets, model, verbose=False, quiet=False):
+def analyse(text, targets, model, language="en", verbose=False, quiet=False):
     """Analyses the emotions in a given string as they relate to a list of targets using the Watson NLU API
-    
+
     :param text: The text to analyse
     :type text: str
     :param targets: List of targets to analyse, there must be at least one target which is in the text
@@ -173,9 +180,11 @@ def analyse(text, targets, model, verbose=False, quiet=False):
 
     # performing analysis
     opts = nlu1.EmotionOptions(targets=targets)
-    res = model.analyze(text=text, features=nlu1.Features(emotion=opts)).get_result()
+    res = model.analyze(
+        text=text, features=nlu1.Features(emotion=opts), language=language
+    ).get_result()
 
-    if verbose: # printing extra information
+    if verbose:  # printing extra information
         print(
             f"Usage: {res['usage']['text_units']} units; {res['usage']['text_characters']} characters."
         )
@@ -183,7 +192,7 @@ def analyse(text, targets, model, verbose=False, quiet=False):
         print(f"Language: {res['language']}")
         print()
 
-    if not quiet: # printing emotion results
+    if not quiet:  # printing emotion results
         col_0_width = max(len(t) for t in targets + ["document"])
 
         print("Results")
