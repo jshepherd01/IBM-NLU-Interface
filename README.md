@@ -9,7 +9,8 @@ Interface with the IBM Natural Language Understanding API
 IBM_NLU_API_URL={the url}
 IBM_NLU_API_KEY={the key}
 ```
-3. Execute main.py by providing one line of text such as:
+3. Run `pip install -r requirements.txt` to install all of the dependencies.
+4. Execute main.py by providing one line of text such as:
 ```
 python3 main.py -i "I love apples! I don't like oranges." -t apples oranges
 ```
